@@ -1,7 +1,7 @@
-#ifndef ERROR_H 
-#define ERROR_H 
+#ifndef RC_H
+#define RC_H
 
 /* return codes */
 #define SUCCESS 0
 #define ERROR 1
-#endif /* ERROR_H */
+#endif /* RC_H */
