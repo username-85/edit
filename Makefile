@@ -14,6 +14,5 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(LDFLAGS) $(OBJECTS)
 
 clean:
-	-rm -f *.txt
 	-rm -f *.o
 	-rm -f $(TARGET)
