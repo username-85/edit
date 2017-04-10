@@ -9,13 +9,12 @@
 
 static int inc_buffer_by_size(struct buffer *buf, size_t const inc_size);
 
-struct buffer* create_buffer(void) {
-
+struct buffer* create_buffer(void)
+{
 	size_t const buf_size = INIT_BUF_SIZE;
 	struct buffer *buf= calloc(1, sizeof(struct buffer));
-	if (!buf) {
+	if (!buf)
 		return NULL;
-	}
 
 	buf->buf_b = calloc(buf_size, sizeof(char));
 	if (!buf->buf_b) {
@@ -38,21 +37,21 @@ struct buffer* create_buffer(void) {
 	return buf;
 }
 
-void delete_buffer(struct buffer *buf) {
-	if (!buf) { 
-		return; 
-	}
+void delete_buffer(struct buffer *buf)
+{
+	if (!buf)
+		return;
 
-	if (buf->buf_b) {
+	if (buf->buf_b)
 		free(buf->buf_b);
-	}
 
 	free_copy_buf(buf);
 
 	free(buf);
 }
 
-void log_buf(struct buffer const *buf) {
+void log_buf(struct buffer const *buf)
+{
 	log_ss("log_buf b", "-------------------------------------");
 	log_si("buf", (int)(uintptr_t)buf);
 	log_si("buf->size", buf->size);
@@ -71,69 +70,20 @@ void log_buf(struct buffer const *buf) {
 	log_ss("log_buf e", "-------------------------------------");
 }
 
-int increase_buffer(struct buffer *buf) {
+int increase_buffer(struct buffer *buf)
+{
 	return inc_buffer_by_size(buf, INC_BUF_SIZE); 
 }
 
-int inc_buffer_by_size(struct buffer *buf, size_t const inc_size) {
-
-	int before_gap_size = buf->gap_b - buf->buf_b;
-	int after_gap_size = buf->buf_e - buf->gap_e;
-	int gap_size = buf->gap_e - buf->gap_b;
-	int disp_b_pos = buf->disp_b - buf->buf_b;
-
-	int sel_index = -1;
-	if (buf->sel) {
-		sel_index = buf->sel <= buf->gap_b
-	                    ? buf->sel - buf->buf_b
-	                    : buf->sel - gap_size - buf->buf_b;
-	}
-
-	int cursor_index = buf->cursor <= buf->gap_b
-	                   ? buf->cursor - buf->buf_b
-	                   : buf->cursor - gap_size - buf->buf_b;
-
-	char *buf_inc = realloc(buf->buf_b, 
-	                        sizeof(char) * (buf->size + inc_size));
-	if (!buf_inc) {
+int load_file(struct buffer *buf, char const *fname)
+{
+	if (!buf || !fname || !strlen(fname))
 		return ERROR;
-	}
-
-	buf->buf_b = buf_inc;
-	buf->size += inc_size;
-	buf->buf_e = buf->buf_b + buf->size;
-	buf->gap_b = buf->buf_b + before_gap_size;
-	buf->gap_e = buf->gap_b + gap_size;
-	buf->disp_b = buf->buf_b + disp_b_pos;
-
-	buf->cursor = (buf->buf_b + cursor_index) <= buf->gap_b
-	              ? buf->buf_b + cursor_index
-	              : buf->gap_e + (cursor_index - before_gap_size);
-
-	if (sel_index >= 0) {
-		buf->sel= (buf->buf_b + sel_index) <= buf->gap_b
-		          ? buf->buf_b + sel_index
-	                  : buf->gap_e + (sel_index - before_gap_size);
-	}
-
-	memmove(buf->gap_e + inc_size, buf->gap_e, 
-	        sizeof(char) * after_gap_size);
-
-	buf->gap_e += inc_size;
-
-	return SUCCESS;
-}
-
-int load_file(struct buffer *buf, char const *fname) {
-	if (!buf || !fname || !strlen(fname)) {
-		return ERROR;
-	}
 
 	FILE *fp;
 	fp = fopen(fname, "r");
-	if (!fp) {
+	if (!fp)
 		return ERROR;
-	}
 
 	size_t fsize;
 	fsize = get_fsize(fname);
@@ -154,20 +104,20 @@ int load_file(struct buffer *buf, char const *fname) {
 	return SUCCESS;
 }
 
-int in_buf(struct buffer const *buf, char const *pos) {
+int in_buf(struct buffer const *buf, char const *pos)
+{
 	return (buf->buf_b <= pos && pos < buf->buf_e);
 }
 
-int in_gap(struct buffer const *buf, char const *pos) {
+int in_gap(struct buffer const *buf, char const *pos)
+{
 	return (buf->gap_b <= pos && pos < buf->gap_e);
 }
 
-
-void move_gap(struct buffer *buf) {
-
-	if (buf->cursor == buf->gap_e) {
+void move_gap(struct buffer *buf)
+{
+	if (buf->cursor == buf->gap_e)
 		return;
-	}
 
 	if (buf->cursor == buf->gap_b) {
 		buf->cursor = buf->gap_e;
@@ -182,8 +132,7 @@ void move_gap(struct buffer *buf) {
 		buf->cursor = buf->gap_e;
 
 		memmove(buf->gap_e, buf->gap_b, sizeof(char) * chunk_size); 
-	}
-	else {
+	} else {
 		int chunk_size = buf->cursor - buf->gap_e;
 
 		memmove(buf->gap_b, buf->gap_e, sizeof(char) * chunk_size);
@@ -191,16 +140,16 @@ void move_gap(struct buffer *buf) {
 		buf->gap_b += chunk_size;
 		buf->gap_e = buf->cursor;
 	}
-
 }
 
-void log_buf_ch(struct buffer *buf, int num_chars) {
-	for (int i = 0; i < num_chars; i++) {
+void log_buf_ch(struct buffer *buf, int num_chars)
+{
+	for (int i = 0; i < num_chars; i++)
 		log_sc("log_buf_ch", buf->buf_b[i]);
-	}
 }
 
-int save(struct buffer const *buf) {
+int save(struct buffer const *buf)
+{
         FILE *fp;
 
         fp = fopen(buf->filename, "w");
@@ -234,18 +183,66 @@ int save(struct buffer const *buf) {
         return SUCCESS;
 }
 
-void toggle_selection(struct buffer *buf) {
-	if (!buf->sel) {
+void toggle_selection(struct buffer *buf)
+{
+	if (!buf->sel)
 		buf->sel = buf->cursor;
-	}
-	else {
+	else
 		buf->sel = NULL;
-	}
 }
 
-void free_copy_buf(struct buffer *buf) {
+void free_copy_buf(struct buffer *buf)
+{
 	buf->copy_buf_size = 0;
-	if (buf->copy_buf) {
+	if (buf->copy_buf)
 		free(buf->copy_buf);
-	}
 }
+
+static int inc_buffer_by_size(struct buffer *buf, size_t const inc_size)
+{
+	int before_gap_size = buf->gap_b - buf->buf_b;
+	int after_gap_size = buf->buf_e - buf->gap_e;
+	int gap_size = buf->gap_e - buf->gap_b;
+	int disp_b_pos = buf->disp_b - buf->buf_b;
+
+	int sel_index = -1;
+	if (buf->sel) {
+		sel_index = buf->sel <= buf->gap_b
+	                    ? buf->sel - buf->buf_b
+	                    : buf->sel - gap_size - buf->buf_b;
+	}
+
+	int cursor_index = buf->cursor <= buf->gap_b
+	                   ? buf->cursor - buf->buf_b
+	                   : buf->cursor - gap_size - buf->buf_b;
+
+	char *buf_inc = realloc(buf->buf_b, 
+	                        sizeof(char) * (buf->size + inc_size));
+	if (!buf_inc)
+		return ERROR;
+
+	buf->buf_b = buf_inc;
+	buf->size += inc_size;
+	buf->buf_e = buf->buf_b + buf->size;
+	buf->gap_b = buf->buf_b + before_gap_size;
+	buf->gap_e = buf->gap_b + gap_size;
+	buf->disp_b = buf->buf_b + disp_b_pos;
+
+	buf->cursor = (buf->buf_b + cursor_index) <= buf->gap_b
+	              ? buf->buf_b + cursor_index
+	              : buf->gap_e + (cursor_index - before_gap_size);
+
+	if (sel_index >= 0) {
+		buf->sel= (buf->buf_b + sel_index) <= buf->gap_b
+		          ? buf->buf_b + sel_index
+	                  : buf->gap_e + (sel_index - before_gap_size);
+	}
+
+	memmove(buf->gap_e + inc_size, buf->gap_e, 
+	        sizeof(char) * after_gap_size);
+
+	buf->gap_e += inc_size;
+
+	return SUCCESS;
+}
+

@@ -32,18 +32,10 @@ static void home(struct buffer *buf);
 static void end(struct buffer *buf);
 static int add_symbol(struct buffer *buf, char ch);
 
-int term_init(void) {
-	setlocale(LC_ALL, "");
-        initscr();
-	cbreak();
-	keypad(stdscr, TRUE);
-	noecho();
-	set_escdelay(20);
+static int term_init(void); 
 
-	return SUCCESS;
-}
-
-struct buffer * edit_prepare(char const *fname) {
+struct buffer * edit_prepare(char const *fname)
+{
 	if (term_init() != SUCCESS) {
 		log_ss("error", "term_init fail");
 		return NULL;
@@ -65,8 +57,7 @@ struct buffer * edit_prepare(char const *fname) {
 				getch();
 				return NULL; 
 			}
-		}
-		else {
+		} else {
 			strncpy(buf->filename, fname, FNAMELEN_MAX);
 		}
 	}
@@ -74,22 +65,10 @@ struct buffer * edit_prepare(char const *fname) {
 	return buf;
 }
 
-int edit_end(struct buffer *buf) {
-        endwin();
-	if (buf) { 
-		delete_buffer(buf);
-		return SUCCESS;
-	}
-	else {
+int edit_run(struct buffer *buf)
+{
+	if (!buf)
 		return ERROR;
-	}
-}
-
-int edit_run(struct buffer *buf) {
-
-	if (!buf) {
-		return ERROR;
-	}
 
 	if (display(buf) != SUCCESS) {
 		log_ss("error", "edit_run display fail");
@@ -105,93 +84,121 @@ int edit_run(struct buffer *buf) {
 	msg(help_str);
 
 	int ch;
-	bool ok = true;
-    	while(ok) {
+	bool in_loop = true;
+	bool err = false;
+    	while(in_loop) {
     		bool redisplay = true;
 		ch = getch();
 
-    		if (KEY_F(10) == ch) {
-    			break;
-    		}
-		else if (KEY_RIGHT == ch) {
+		switch(ch) {
+		case KEY_F(10):
+			in_loop = false;
+			break;
+    		case KEY_RIGHT:
 			mv_cursor(buf, DIR_NEXT);
-		}
-		else if (KEY_LEFT == ch) {
+			break;
+		case KEY_LEFT:
 			mv_cursor(buf, DIR_PREV);
-		}
-    		else if (KEY_DOWN == ch) {	
+			break;
+		case KEY_DOWN:
 			mv_cursor(buf, DIR_LINENEXT);
-		}
-		else if (KEY_UP == ch) {
+			break;
+		case KEY_UP:
 			mv_cursor(buf, DIR_LINEPREV);
-		}
-		else if (KEY_BACKSPACE == ch || ALT_BACKSPACE == ch) {
+			break;
+		case KEY_BACKSPACE:
+		case ALT_BACKSPACE:
 			delete_prev(buf);
-		} 
-    		else if(KEY_DC == ch) {
+			break;
+		case KEY_DC:
     			delete(buf);
-    		}
-    		else if(KEY_ESC == ch) {
+    			break;
+    		case KEY_ESC:
     			buf->sel =  NULL;
-    		}
-		else if (KEY_F(1)== ch) {
+    			break;
+    		case KEY_F(1):
 			msg(help_str);
 			redisplay = 0;
-		} 
-		else if(KEY_F(2) == ch) {
+			break;
+		case KEY_F(2):
 			save_to_file(buf);
 			redisplay = 0;
-		}
-		else if (KEY_F(3)== ch) {
+			break;
+		case KEY_F(3):
 			toggle_selection(buf);
-		}
-		else if (KEY_F(4)== ch) {
+			break;
+		case KEY_F(4):
 			copy_selection(buf);
-		}
-		else if (KEY_F(5)== ch) {
+			break;
+		case KEY_F(5):
 			cut_selection(buf);
-		}
-		else if (KEY_F(6)== ch) {
+			break;
+		case KEY_F(6):
 			if (paste_selection(buf) == ERROR) {
 				log_ss("error", "paste_selection fail");
-				ok = false;
-				continue;
+				in_loop = false;
+				err = true;
 			}
-		}
-		else if (KEY_NPAGE == ch) {
+			break;
+		case KEY_NPAGE:
 			pg_down(buf);
-		}
-		else if (KEY_PPAGE == ch) {
+			break;
+		case KEY_PPAGE:
 			pg_up(buf);
-		}
-		else if (KEY_HOME == ch) {
+			break;
+		case KEY_HOME:
 			home(buf);
-		}
-		else if (KEY_END == ch) {
+			break;
+		case KEY_END:
 			end(buf);
-		}
-		else {
+			break;
+		default:
 			if (add_symbol(buf, ch) == ERROR) {
 				log_ss("error", "add_symbol fail");
-				ok = false;
+				in_loop = false;
+				err = true;
 				continue;
 			}
 		}
 
-		if (redisplay) {
+		if (redisplay)
 			display(buf);
-		}
     	}
 	
-	if (!ok) {
+	if (err) {
 		msg("Error. Details in " LOGFILE);
 		getch();
 		return ERROR;
 	}
+
 	return SUCCESS;
 }
 
-void get_input(char * prompt, char *input, size_t size) {
+int edit_end(struct buffer *buf)
+{
+        endwin();
+	if (buf) { 
+		delete_buffer(buf);
+		return SUCCESS;
+	} 
+
+	return ERROR;
+}
+
+static int term_init(void)
+{
+	setlocale(LC_ALL, "");
+        initscr();
+	cbreak();
+	keypad(stdscr, TRUE);
+	noecho();
+	set_escdelay(20);
+
+	return SUCCESS;
+}
+
+static void get_input(char * prompt, char *input, size_t size)
+{
 	attron(A_REVERSE);
 	echo();
 	move(LINES - 1, 0);         
@@ -204,22 +211,22 @@ void get_input(char * prompt, char *input, size_t size) {
 	attroff(A_REVERSE);
 }
 
-int save_to_file(struct buffer *buf) {
-	while (!strlen(buf->filename)) {
+static int save_to_file(struct buffer *buf)
+{
+	while (!strlen(buf->filename))
 		get_input("Enter filename: ", buf->filename, FNAMELEN_MAX);
-	}
 	
 	if (save(buf) == SUCCESS) {
 		msg("File saved");
 		return SUCCESS;
-	}
-	else {
+	} else {
 		msg("Error! File wasn't saved");
 		return ERROR;
 	}
 }
 
-void msg(char const * msg) {
+static void msg(char const * msg)
+{
 	attron(A_REVERSE);
 	echo();
 	move(LINES - 1, 0);         
@@ -233,7 +240,8 @@ void msg(char const * msg) {
 	attroff(A_REVERSE);
 }
 
-void cut_selection(struct buffer *buf) {
+static void cut_selection(struct buffer *buf)
+{
 	if (buf->sel) {
 		copy_sel(buf);
 		del_sel(buf);
@@ -241,7 +249,8 @@ void cut_selection(struct buffer *buf) {
 	}
 }
 
-int paste_selection(struct buffer *buf) {
+static int paste_selection(struct buffer *buf)
+{
 	bool ok = true;
 	if (buf->copy_buf && buf->copy_buf_size) {
 		ok = (paste(buf) == SUCCESS);
@@ -250,53 +259,57 @@ int paste_selection(struct buffer *buf) {
 	return (ok ? SUCCESS : ERROR);
 }
 
-void copy_selection(struct buffer *buf) {
+static void copy_selection(struct buffer *buf)
+{
 	if (buf->sel) {
 		copy_sel(buf);
 		buf->sel = NULL;
 	}
 }
 
-void delete(struct buffer *buf) {
+static void delete(struct buffer *buf)
+{
 	if (buf->sel) {
 		del_sel(buf);
 		buf->sel = NULL;
-	}
-	else {
+	} else {
 		del_symb(buf);
 	}
 }
 
-void delete_prev(struct buffer *buf) {
+static void delete_prev(struct buffer *buf)
+{
 	if (buf->sel) {
 		del_sel(buf);
 		buf->sel = NULL;
-	}
-	else {
+	} else {
 		del_prev_symb(buf);
 	}
 }
 
-void pg_down(struct buffer *buf) {
+static void pg_down(struct buffer *buf)
+{
 	mv_by_lines(buf, LINESONPAGE, DIR_LINENEXT);
 }
 
-
-void pg_up(struct buffer *buf) {
+static void pg_up(struct buffer *buf)
+{
 	mv_by_lines(buf, LINESONPAGE, DIR_LINEPREV);
 }
 
-
-void home(struct buffer *buf) {
+static void home(struct buffer *buf)
+{
 	buf->cursor = ptr_to_line_b(buf, buf->cursor);
 }
 
-void end(struct buffer *buf) {
+static void end(struct buffer *buf)
+{
 	buf->cursor = ptr_to_line_e(buf, buf->cursor);
 }
 
-int add_symbol(struct buffer *buf, char ch) {
-	bool ok = (add_ch(buf, ch) == SUCCESS) ;
+static int add_symbol(struct buffer *buf, char ch)
+{
+	bool ok = (add_ch(buf, ch) == SUCCESS);
 	if (ok) {
 		int symb_len = get_symb_len(ch); 
 		for (int i = 1; i < symb_len && ok; i++) {
@@ -304,6 +317,6 @@ int add_symbol(struct buffer *buf, char ch) {
 			ok = (add_ch(buf, ch) == SUCCESS);
 		}
 	}
-	return (ok ? SUCCESS : ERROR);
 
+	return (ok ? SUCCESS : ERROR);
 }

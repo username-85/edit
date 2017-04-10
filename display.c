@@ -10,11 +10,10 @@
 
 #define TAB_LEN 8
 
-int display(struct buffer *buf) {
-
-	if (!buf) {
+int display(struct buffer *buf)
+{
+	if (!buf)
 		return ERROR;
-	}
 
 	erase();
 
@@ -38,9 +37,8 @@ int display(struct buffer *buf) {
 				sel_e = buf->sel;
 			}
 
-			if (sel_b <= p && p <= sel_e) {
+			if (sel_b <= p && p <= sel_e)
 				attron(A_REVERSE);
-			}
 		}
 
 		if (buf->cursor == p) {
@@ -56,39 +54,32 @@ int display(struct buffer *buf) {
 				cursor_y = y;
 			}
 
-			if (p == buf->buf_e) {
+			if (p == buf->buf_e)
 				continue;
-			}
 		}
 
 		int symb_size = get_symb_len(*p);
 		if (!symb_size) {
 			return ERROR;
-		}
-		else if (symb_size == 1) {
+		} else if (symb_size == 1) {
 			if (isprint(*p)) {
 				addch(*p);
 				x_inc = 1;
-			}
-			else if (*p == '\n') {
+			} else if (*p == '\n') {
 				addch(*p);
 				x_inc = 1;
-			}
-			else if (*p == '\t') {
+			} else if (*p == '\t') {
 				for (int i = 0; i < TAB_LEN; i++) {
 					addch(' ');
 				}
 				x_inc = TAB_LEN;
 			}
-		}
-		else {
-			for (int i = 0; i < UTF_BUF_SIZE; i++) {
+		} else {
+			for (int i = 0; i < UTF_BUF_SIZE; i++)
 				str[i] = '\0';
-			}
 
-			for (int i = 0; i < symb_size; i++) {
+			for (int i = 0; i < symb_size; i++)
 				str[i] = *(p + i);
-			}
 
 			if (strlen(str)) {
 				addstr(str);
