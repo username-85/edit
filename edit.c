@@ -88,9 +88,8 @@ int edit_run(struct buffer *buf)
 	bool err = false;
     	while(in_loop) {
     		bool redisplay = true;
-		ch = getch();
 
-		switch(ch) {
+		switch(ch = getch()) {
 		case KEY_F(10):
 			in_loop = false;
 			break;
